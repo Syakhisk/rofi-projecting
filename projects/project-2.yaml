@@ -1,0 +1,18 @@
+root: testing
+
+programs:
+  google:
+    name: Google
+    browser:
+      tab_name: "Telegram"
+      url: https://web.telegram.org/k/
+
+  database:
+    name: Kitty
+    commands: 
+      - kitty
+
+  figma:
+
+  telegram:
+

@@ -1,0 +1,78 @@
+#!/bin/env python3
+
+import os
+# import path
+import subprocess as sp
+
+def run(cmd_arr, check = False):
+    ret = sp.run(cmd_arr, check=check, stdout=sp.PIPE, stderr=sp.PIPE)
+
+    return {
+        'stdout': ret.stdout.decode(),
+        'stderr': ret.stderr.decode(),
+        'returncode': ret.returncode
+    }
+
+def find_root_dir():
+    project_root_identifier = [
+        'composer.json',
+        'package.json',
+        'package-lock.json',
+    ]
+
+    git_root =  run(['git', 'rev-parse', '--show-toplevel'])['stdout'].strip()
+
+    if git_root:
+        return git_root
+    else:
+        current_dir = os.getcwd()
+        if any(os.path.exists(
+            os.path.join(current_dir, path)) for path in project_root_identifier
+            ):
+            return current_dir
+        else:
+            return None
+
+        while True:
+            if os.path.exists(os.path.join(current_dir, '.git')):
+                return current_dir
+            else:
+                current_dir = os.path.dirname(current_dir)
+        # package.json composer.json .root-project
+
+
+# ls = run(['ls', '-l', 'asd'])
+# ls = run(['ls', '-l'])
+# print(ls["stdout"])
+# print(run(["pwd"])["stdout"])
+
+# root_dir = find_root_dir()
+# print(root_dir)
+
+status = os.path.exists("halo")
+print(status)
+
+# stdout, stderr, returncode = ls.values()
+# print(stdout)
+# print(stderr)
+# print(returncode)
+
+# def asd(*args):
+#     return args
+
+# foo = asd(1,2,3)
+# print(foo)
+
+# print(foo[0])
+# print(foo[1])
+# print(foo[2])
+
+# bar = [1,2,3]
+
+# # push to array
+# bar.append(4)
+
+
+
+
+

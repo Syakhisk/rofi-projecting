@@ -1,0 +1,75 @@
+#!/bin/env python3
+
+import os
+import subprocess as sp
+# import configparser
+import yaml
+
+def run(cmd_arr, check = False, input=None):
+    ret = sp.run(cmd_arr, check=check, stdout=sp.PIPE, stderr=sp.PIPE, input=input)
+
+    return {
+        'stdout': ret.stdout.decode(),
+        'stderr': ret.stderr.decode(),
+        'returncode': ret.returncode
+    }
+
+
+# use xdg config
+# config_file_directories = os.path.expanduser('~/.config/projecting/')
+# config_file_directories = "projects/"
+config_file_directories = os.path.expanduser('~/Codes/Misc/rofi-projecting/projects')
+projects = [ f for f in os.listdir(config_file_directories) if f.endswith('.yaml') ]
+chosen_project = "project-2"
+
+# find chosen project path
+chosen_project_path = os.path.join(config_file_directories, chosen_project + '.yaml')
+
+f = open(chosen_project_path, 'r').read()
+config = yaml.load(f, Loader=yaml.FullLoader)
+
+parsed = list(map(lambda p: p+'\n', config["programs"].keys()))
+multiline = ''.join(parsed)
+
+rofi = [
+    'rofi',
+    '-kb-select-1 Ctrl+i',
+    # '-kb-select-2 Super+k',
+    # '-kb-select-3 Super+l',
+    # '-kb-select-4 Super+;',
+    '-dmenu',
+    '-p',
+    'Projecting',
+]
+
+rofi_out = run(rofi, input=multiline.encode())
+print(rofi_out)
+
+
+
+# print(config["programs"].keys())
+
+# rofi_out = run(['rofi', '-dmenu', '-i', '-p', 'Projecting'], input=config["programs"])
+
+# print(config["programs"])
+# ff = config["programs"]["Google"]
+# out = run(["xdotool", "search", "--all", "--name", ff["selector"]["name"]])
+
+# if out["returncode"] != 0:
+#     print("No window found")
+#     exit(1)
+
+# print(out["stdout"])
+
+
+
+
+# config = configparser.ConfigParser()
+# config.read(chosen_project_path)
+
+# # print all keys and values of config
+# for key in config.keys():
+#     print(key, ':', config[key])
+
+
+

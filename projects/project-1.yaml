@@ -1,0 +1,8 @@
+programs:
+  - name: Google
+    command: firefox
+    args: https://google.com
+
+  - name: Xterm
+    command: xterm
+
