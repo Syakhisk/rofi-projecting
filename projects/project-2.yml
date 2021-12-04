@@ -1,0 +1,25 @@
+root: testing
+
+programs:
+  google:
+    name: Google
+    browser:
+      url: https://github.com
+
+  tmux:
+    name: TMUX
+
+  line:
+    name: LINE
+    commands:
+      - "line"
+
+  alacritty:
+    class: Alacritty
+    commands: 
+      - "alacritty"
+
+  figma:
+
+  telegram:
+

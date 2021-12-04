@@ -1,133 +1,164 @@
 #!/bin/env python3
 
-# import os
-from os import path
+from pydymenu import rofi
+from tempfile import gettempdir
 import subprocess as sp
 import yaml
-from tempfile import gettempdir
+import os
 
-def run(cmd, *args, check = False, input=None):
-    ret = sp.run(cmd, *args, check=check, stdout=sp.PIPE, stderr=sp.PIPE, input=input, shell=True)
-
+# {{{ Functions
+def run (command):
+    _out = sp.run(command, shell=True, stdout=sp.PIPE, stderr=sp.PIPE)
     return {
-        'stdout': ret.stdout.decode(),
-        'stderr': ret.stderr.decode(),
-        'returncode': ret.returncode
+        'returncode': _out.returncode,
+        'stdout': _out.stdout.decode().strip(),
+        'stderr': _out.stderr.decode().strip()
     }
 
-rofiSelectKeys = [
-    '-kb-select-1', 'Super+j',
-    '-kb-select-2', 'Super+k',
-    '-kb-select-3', 'Super+l',
-    '-kb-select-4', 'Super+semicolon',
-    '-kb-select-5', 'Super+u',
-    '-kb-select-6', 'Super+i',
-    '-kb-select-7', 'Super+o',
-    '-kb-select-8', 'Super+p',
-    # '-kb-custom-1', 'Super+j',
-    # '-kb-custom-2', 'Super+k',
-    # '-kb-custom-3', 'Super+l',
-    # '-kb-custom-4', 'Super+semicolon',
-    # '-kb-custom-5', 'Super+u',
-    # '-kb-custom-6', 'Super+i',
-    # '-kb-custom-7', 'Super+o',
-    # '-kb-custom-8', 'Super+p',
-]
+def notify(message, title='Projecting'):
+    run(f"notify-send '{title}' '{message}'")
 
-ROFI_SHOW_CMD = 'rofi -dmenu -no-cusrom -i -p Projecting'
-PROJECTS_DIRECTORY = "/home/m42nk/Codes/Misc/rofi-projecting/projects"
-PROJECT_EXTENSION = ".yaml"
+def log(message):
+    notify(message)
+    print(message)
 
-# check running project
-
-# store running project in a tmp file
-tmpFile = path.join(gettempdir(), 'projecting-running-project')
-runningProjectName = path.exists(tmpFile) and open(tmpFile).read().strip() or None
-
-# if not exists show error
-# {{{ Markup
-# markup = """
-# <span foreground="red" size="x-large">Blue text</span>
-# """
-# themeStr = """
-# """
-# run(["rofi", "-e", markup, "-markup", '-theme-str', themeStr])
+def loadConfig(path):
+    _f = open(path, 'r').read()
+    return yaml.load(_f, Loader=yaml.FullLoader)
 # }}}
-if not runningProjectName:
-    run(["notify-send", "Projecting", "No Project is running"])
-    print("No running project")
-    exit(1)
 
-projectPath = path.join(PROJECTS_DIRECTORY, runningProjectName + PROJECT_EXTENSION)
+# {{{ xdotool
 
-if not path.exists(projectPath):
-    run(["notify-send", "Projecting", "Project not found"])
-    print("Project not found")
-    exit(1)
+def activateWindow(window_id):
+    _o = run(f"xdotool windowactivate {window_id}")
+    return _o['returncode'] == 0
 
-_f = open(projectPath, 'r').read()
-config = yaml.load(_f, Loader=yaml.FullLoader)
+def findWindowByName(name):
+    wid = run(f"xdotool search --name '{name}'")['stdout']
+    return wid
 
-programs = config['programs'].keys()
-multiline = '\n'.join(programs).encode()
+def findWindowByClass(className):
+    wid = run(f"xdotool search --class '{className}'")['stdout']
+    return wid
+# }}}
 
-rofiOut = run(ROFI_SHOW_CMD, input=multiline)
+# {{{ brotab
+def listBrowserTabs():
+    _o = run("brotab list")['stdout']
+    return [x.split('\t') for x in _o.split('\n')]
 
-if rofiOut['returncode'] != 0:
-    print("No Action")
-    exit(1)
+def findBrowserTab(url):
+    tabs = listBrowserTabs()
 
-choosenProgram = rofiOut['stdout'].strip()
-programCfg = config['programs'][choosenProgram]
+    """
+        tabs = 
+            ['1', 'Google', 'https://www.google.com'],
+            ['2', 'YouTube', 'https://www.youtube.com'],
+    """
 
-# if program is browser tab
-if "browser" in programCfg.keys():
-    tabs = run("brotab list")
-    if tabs['returncode'] != 0:
-        print("Something went wrong")
+    target = next((tab for tab in tabs if url in tab[2]), None)
+    print(target)
+
+    # for tab in tabs:
+    #     if url == tab[2]:
+    #         return {
+    #             'id': tab[0],
+    #             'title': tab[1],
+    #             'url': tab[2]
+    #         }
+
+def activateBrowserTab(url):
+    findBrowserTab(url)
+    # target = findBrowserTab(url)
+    # run(f"brotab activate {target['id']}")
+
+# }}}
+
+#{{{ Config file
+
+homedir = os.getenv("HOME")
+projectPath = os.getenv('XDG_CONFIG_HOME') or f"{homedir}/.config"
+projectPath = f"{projectPath}/projecting"
+
+# Create config directory if it doesn't exist
+if not os.path.exists(projectPath):
+    os.makedirs(projectPath)
+
+# }}}
+
+#{{{ Running project
+
+# Create tmp file to store running project
+tmp = gettempdir() + "/projecting.running"
+
+# Check if there is a running project
+# if it exist, read it
+running = open(tmp, "r").read().strip() if os.path.exists(tmp) else None
+runningPath = None
+
+if not running:
+    # list files in config directory that ends with .yaml or .yml
+    projects = [f.split('.')[0] for f in os.listdir(projectPath) if f.endswith(".yml")]
+    selected = rofi(projects, prompt="Start projecting:")
+    if selected:
+        running = selected
+        open(tmp, "w").write(selected[0].strip())
+else:
+    runningPath = [f for f in os.listdir(projectPath) if f.startswith(running)]
+    runningPath = f"{projectPath}/{runningPath[0]}"
+
+# }}}
+
+# {{{ Parsing Yaml Config
+config = loadConfig(runningPath)
+
+# check if key exists
+keys = ["programs"]
+for key in keys:
+    if key not in config:
+        log(f"Key '{key}' not found in config file")
         exit(1)
+# }}}
 
-    tabs = tabs["stdout"].split('\n')
-    target = next((tab for tab in tabs if programCfg["browser"]["tab_name"] in tab), None)
+programs = list(config['programs'].keys())
+selectedProgram = rofi(programs, prompt="Pick a program: ")
 
-    if not target:
-        print("Tab not found, launching")
-        run("xdg-open %s" % programCfg["browser"]["url"])
-        exit(1)
+if not selectedProgram:
+    print("No program selected")
+    exit(1)
 
-    id = target.split('\t')[0]
-    run("brotab activate %s" % id)
+selectedProgram = selectedProgram[0]
+programConf = config['programs'][selectedProgram]
+keys = list(programConf.keys())
+wid = ''
+browser = False
 
-    xdtOut = run("xdotool search --name '%s'" % programCfg["browser"]["tab_name"])
-    # handle error
+if 'browser' in keys:
+    browser = True
+    tab = findBrowserTab(programConf['browser']['url'])
 
-    wid = xdtOut['stdout'].split('\n')[0]
+elif 'name' in keys:
+    wid = findWindowByName(programConf['name'])
 
-    xdtOut = run("xdotool windowactivate %s" % wid)
-    # handle error
+elif 'class' in keys :
+    wid = findWindowByClass(programConf['class'])
 
 else:
-findProgram = run("xdotool search --all --name '%s'" % format(programConfig["name"]))
-# print(findProgram["stdout"])
+    exit(1)
 
-# if programConfig["commands"] is None:
-#     print("No Action")
-#     exit(1)
+if wid:
+    activateWindow(wid)
+    log(f"Activated window {selectedProgram}")
+elif browser:
+    activateBrowserTab(tab)
+    log(f"Activated browser tab {selectedProgram}")
+else:
+    log(f"Launching {selectedProgram}")
+    # do we need to focus window?
+    for cmd in programConf['commands']: run(cmd)
 
-# elif type(programConfig["commands"]) is list:
-#     [run(cmd) for cmd in programConfig["commands"]]
 
-# else:
-#     run(programConfig["commands"])
-
-
-# parse rofi output
-# - if rofi output is empty, exit
-
-## Launching or focus a window
-# find choosen window and its selector 
-# - if window is not found, launch it
-# - edge case for firefox multiple instance
-# - if window is found, focus it
+# print(programConf['name'])
+# print(activateWindowByName(programConf['name']))
 
 # vim:foldmethod=marker
