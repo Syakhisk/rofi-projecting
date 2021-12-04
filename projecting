@@ -27,7 +27,7 @@ def loadConfig(path):
     return yaml.load(_f, Loader=yaml.FullLoader)
 # }}}
 
-# {{{ xdotool
+# {{{ xdotool / wmctrl
 
 def activateWindow(window_id):
     _o = run(f"xdotool windowactivate {window_id}")
@@ -40,6 +40,7 @@ def findWindowByName(name):
 def findWindowByClass(className):
     wid = run(f"xdotool search --class '{className}'")['stdout']
     return wid
+
 # }}}
 
 # {{{ brotab
@@ -48,29 +49,15 @@ def listBrowserTabs():
     return [x.split('\t') for x in _o.split('\n')]
 
 def findBrowserTab(url):
-    tabs = listBrowserTabs()
+    tab = next((tab for tab in listBrowserTabs() if url in tab[2]), None)
+    return {
+        'id': tab[0],
+        'title': tab[1],
+        'url': tab[2]
+    }
 
-    """
-        tabs = 
-            ['1', 'Google', 'https://www.google.com'],
-            ['2', 'YouTube', 'https://www.youtube.com'],
-    """
-
-    target = next((tab for tab in tabs if url in tab[2]), None)
-    print(target)
-
-    # for tab in tabs:
-    #     if url == tab[2]:
-    #         return {
-    #             'id': tab[0],
-    #             'title': tab[1],
-    #             'url': tab[2]
-    #         }
-
-def activateBrowserTab(url):
-    findBrowserTab(url)
-    # target = findBrowserTab(url)
-    # run(f"brotab activate {target['id']}")
+def activateBrowserTab(id):
+    return run(f"brotab activate {id}")['returncode'] == 0
 
 # }}}
 
@@ -130,17 +117,21 @@ if not selectedProgram:
 selectedProgram = selectedProgram[0]
 programConf = config['programs'][selectedProgram]
 keys = list(programConf.keys())
-wid = ''
 browser = False
+wid = None
+commands = None
 
 if 'browser' in keys:
     browser = True
     tab = findBrowserTab(programConf['browser']['url'])
+    wid = findWindowByName(tab['title'])
 
 elif 'name' in keys:
+    commands = programConf['commands']
     wid = findWindowByName(programConf['name'])
 
 elif 'class' in keys :
+    commands = programConf['commands']
     wid = findWindowByClass(programConf['class'])
 
 else:
@@ -148,17 +139,15 @@ else:
 
 if wid:
     activateWindow(wid)
+    if browser: activateBrowserTab(tab['id'])
     log(f"Activated window {selectedProgram}")
-elif browser:
-    activateBrowserTab(tab)
-    log(f"Activated browser tab {selectedProgram}")
 else:
     log(f"Launching {selectedProgram}")
-    # do we need to focus window?
-    for cmd in programConf['commands']: run(cmd)
 
+    if browser:
+        run(f"xdg-open {tab['url']}")
 
-# print(programConf['name'])
-# print(activateWindowByName(programConf['name']))
+    if commands:
+        for cmd in commands: run(cmd)
 
 # vim:foldmethod=marker

@@ -8,18 +8,18 @@ programs:
 
   tmux:
     name: TMUX
+    commands:
+      - kitty -e tmux
 
   line:
     name: LINE
     commands:
       - "line"
 
-  alacritty:
-    class: Alacritty
+  database:
+    class: "jetbrains-datagrip"
     commands: 
-      - "alacritty"
-
-  figma:
+      - "datagrip"
 
   telegram:
 
