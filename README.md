@@ -1,6 +1,7 @@
 # Projecting
 
 Launch or focus to frequently used programs in a project.
+![projecting](https://user-images.githubusercontent.com/63556086/144819878-5f0a3200-aa80-44df-acd3-49d90f51ea6b.gif)
 
 ## Dependencies
 
@@ -11,6 +12,7 @@ Python (using pip)
 
 Linux (using package manager)
 * wmctrl
+* rofi
 
 ## Installation
 Clone the repository and then move/link `projecting` into your `$PATH`
