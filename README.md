@@ -12,8 +12,22 @@ Python (using pip)
 Linux (using package manager)
 * wmctrl
 
+## Installation
+Clone the repository and then move/link `projecting` into your `$PATH`
+e.g.
+
+```
+$ ln -s /path/to/projecting /bin
+```
+
+or
+
+```
+$ mv projecting /bin
+```
+
 ## Usage
-Create a yaml file (ended with .yml) in the ~/.config/projecting/ directory.
+Create a yaml file (ended with .yml) in the ~/.config/projecting/ directory (see projects/example-project.yml).
 
 Example project:
 ```yaml
