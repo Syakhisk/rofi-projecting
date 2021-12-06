@@ -105,7 +105,7 @@ for key in keys:
         exit(1)
 # }}}
 
-programs = list(config['programs'].keys())
+programs = list(config['programs'].keys()) + list(['Quit Project'])
 selectedProgram = rofi(programs, prompt="Pick a program: ")
 
 if not selectedProgram:
@@ -113,6 +113,11 @@ if not selectedProgram:
     exit(1)
 
 selectedProgram = selectedProgram[0]
+
+if selectedProgram == 'Quit Project':
+    if running: open(tmp, "w").write("")
+    exit(0)
+
 programConf = config['programs'][selectedProgram]
 keys = list(programConf.keys())
 found = False
