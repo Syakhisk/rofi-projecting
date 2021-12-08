@@ -45,7 +45,17 @@ def listBrowserTabs():
     return [x.split('\t') for x in _o.split('\n')]
 
 def findBrowserTab(url):
-    tab = next((tab for tab in listBrowserTabs() if url in tab[2]), None)
+    tab = next((tab for tab in listBrowserTabs() if url.startswith(tab[2])), None)
+
+    if not tab: return None
+    return {
+        'id': tab[0],
+        'title': tab[1],
+        'url': tab[2]
+    }
+
+def findBrowserTabByTitle(title):
+    tab = next((tab for tab in listBrowserTabs() if title.startswith(tab[1])), None)
 
     if not tab: return None
     return {
@@ -126,7 +136,12 @@ tab = False
 # finding
 if 'browser' in keys:
     url = programConf['browser']['url']
+    title = programConf['browser']['title']
     tab = findBrowserTab(url)
+
+    if not tab:
+        tab = findBrowserTabByTitle(title)
+
 
     if tab:
         activateBrowserTab(tab['id'])
