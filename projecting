@@ -96,6 +96,11 @@ if not running:
     projects = [f.split('.')[0] for f in os.listdir(projectPath) if f.endswith(".yml")]
     selected = rofi(projects, prompt="Start projecting:")
     if selected:
+
+        if selected[0] not in projects:
+            log(f"{selected[0]} is not a valid project")
+            exit(1)
+
         running = selected
         open(tmp, "w").write(selected[0].strip())
 else:
